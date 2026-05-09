@@ -1,20 +1,181 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# ♟️ Chess Tournament Platform
 
-# Run and deploy your AI Studio app
+A modern full-stack chess tournament management platform built with React, Vite, Node.js, and PostgreSQL.  
+The platform allows users to create tournaments, manage players, track matches, and view tournament standings in real time.
 
-This contains everything you need to run your app locally.
+---
 
-View your app in AI Studio: https://ai.studio/apps/5e305d0c-25a4-423f-96b5-69445bb7c882
+# 🚀 Features
 
-## Run Locally
+- 🎯 Create and manage chess tournaments
+- 👥 Player registration system
+- 🏆 Tournament brackets and standings
+- ♟️ Match scheduling and tracking
+- 📊 Real-time tournament updates
+- 🔐 Authentication system
+- 🌐 REST API integration
+- ⚡ Fast frontend using Vite + React
+- 🗄️ PostgreSQL database support
 
-**Prerequisites:**  Node.js
+---
 
+# 🛠️ Tech Stack
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## Frontend
+- React
+- TypeScript
+- Vite
+- Tailwind CSS
+- React Router
+
+## Backend
+- Node.js
+- Express.js
+- PostgreSQL
+- Prisma / Sequelize (if using)
+
+---
+
+# 📁 Project Structure
+
+```bash
+CHESS_BOARD/
+│
+├── frontend/
+│   ├── src/
+│   ├── public/
+│   └── vite.config.ts
+│
+├── backend/
+│   ├── routes/
+│   ├── controllers/
+│   ├── models/
+│   ├── middleware/
+│   └── server.js
+│
+├── dist/
+├── package.json
+└── README.md
+```
+
+---
+
+# ⚙️ Installation
+
+## 1️⃣ Clone Repository
+
+```bash
+git clone <your-repository-url>
+cd CHESS_BOARD
+```
+
+---
+
+## 2️⃣ Install Dependencies
+
+### Frontend
+
+```bash
+npm install
+```
+
+### Backend
+
+```bash
+cd backend
+npm install
+```
+
+---
+
+# ▶️ Run Project
+
+## Start Frontend
+
+```bash
+npm run dev
+```
+
+Frontend runs on:
+
+```bash
+http://localhost:3000
+```
+
+---
+
+## Start Backend
+
+```bash
+cd backend
+npm run dev
+```
+
+Backend runs on:
+
+```bash
+http://localhost:5000
+```
+
+---
+
+# 🗄️ Database Setup
+
+Create a PostgreSQL database.
+
+Add environment variables:
+
+```env
+DATABASE_URL=your_postgresql_connection_url
+PORT=5000
+JWT_SECRET=your_secret_key
+```
+
+---
+
+# 🧪 Build Project
+
+```bash
+npm run build
+```
+
+---
+
+# 📡 API Routes
+
+## Tournament Routes
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | /api/tournaments | Get all tournaments |
+| POST | /api/tournaments | Create tournament |
+| GET | /api/tournaments/:id | Get tournament by ID |
+
+---
+
+# 📸 Screenshots
+
+Add project screenshots here.
+
+---
+
+# 🔮 Future Improvements
+
+- Live chess board integration
+- Elo rating system
+- Match analytics
+- Admin dashboard
+- Real-time multiplayer support
+- WebSocket integration
+
+---
+
+# 👨‍💻 Author
+
+Developed by Madhur Mehare
+
+---
+
+# 📄 License
+
+This project is licensed under the MIT License.
