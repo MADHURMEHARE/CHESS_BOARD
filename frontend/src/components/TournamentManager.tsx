@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Trophy, ChevronRight, Activity, Calendar } from 'lucide-react';
-
+import { useNavigate } from "react-router-dom";
 interface Tournament {
   id: number;
   name: string;
@@ -14,14 +14,14 @@ interface Player {
   rating: number;
 }
 
-export default function TournamentManager({ onSelectTournament }: { onSelectTournament: (id: number) => void }) {
+export default function TournamentManager() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [availablePlayers, setAvailablePlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [name, setName] = useState('');
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<number[]>([]);
-
+const navigate = useNavigate();
   const fetchData = async () => {
     try {
       const [tRes, pRes] = await Promise.all([
@@ -45,6 +45,7 @@ export default function TournamentManager({ onSelectTournament }: { onSelectTour
 
   const handleCreateTournament = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Creating tournament with name:', name, 'and player IDs:', selectedPlayerIds);
     if (!name.trim() || selectedPlayerIds.length < 10) {
       alert("Please enter a name and select exactly 10 players.");
       return;
@@ -156,7 +157,7 @@ export default function TournamentManager({ onSelectTournament }: { onSelectTour
           tournaments.map((t) => (
             <div 
               key={t.id} 
-              onClick={() => onSelectTournament(t.id)}
+              onClick={()=> navigate(`/tournaments/${t.id}`)}
               className="border-b-8 border-r-8 border-[#1A1A1A] bg-white p-8 group hover:bg-[#F8F7F2] transition-colors cursor-pointer flex justify-between items-center relative overflow-hidden"
             >
               <div className="space-y-6 relative z-10">

@@ -2,6 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { ChevronLeft, Play, Sword, Award, User, Target, Info, Users } from 'lucide-react';
 import { motion } from 'motion/react';
 
+import {
+  useNavigate,
+} from "react-router-dom";
+
 interface Player {
   id: number;
   name: string;
@@ -30,10 +34,11 @@ interface TournamentDetail {
   matches: Match[];
 }
 
-export default function TournamentView({ id, onBack }: { id: number, onBack: () => void }) {
+export default function TournamentView({ id }: { id: number }) {
   const [tournament, setTournament] = useState<TournamentDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [simulating, setSimulating] = useState(false);
+  const navigate = useNavigate();
 
   const fetchDetails = async () => {
     try {
@@ -88,7 +93,7 @@ export default function TournamentView({ id, onBack }: { id: number, onBack: () 
       <header className="flex justify-between items-start border-b-2 border-[#1A1A1A] pb-8">
         <div className="flex gap-8 items-center">
           <button 
-            onClick={onBack}
+            onClick={()=>navigate("/tournaments")}
             className="w-12 h-12 border-2 border-[#1A1A1A] flex items-center justify-center hover:bg-[#1A1A1A] hover:text-white transition-all transform hover:-translate-x-1"
           >
             <ChevronLeft className="w-6 h-6" />
