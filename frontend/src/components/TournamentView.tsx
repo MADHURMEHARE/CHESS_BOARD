@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, Play, Sword, Award, User, Target, Info, Users } from 'lucide-react';
-import { motion } from 'motion/react';
+
 
 import {
   useNavigate,
@@ -39,19 +39,33 @@ export default function TournamentView({ id }: { id: number }) {
   const [loading, setLoading] = useState(true);
   const [simulating, setSimulating] = useState(false);
   const navigate = useNavigate();
+const fetchDetails = async () => {
 
-  const fetchDetails = async () => {
-    try {
-      const res = await fetch(`/api/tournaments/${id}`);
-      const data = await res.json();
-      setTournament(data);
-    } catch (error) {
-      console.error('Error fetching tournament details:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  try {
 
+    const API =
+      import.meta.env.VITE_API_URL;
+
+    const res = await fetch(
+      `${API}/api/tournaments/${id}`
+    );
+
+    const data = await res.json();
+
+    setTournament(data);
+
+  } catch (error) {
+
+    console.error(
+      'Error fetching tournament details:',
+      error
+    );
+
+  } finally {
+
+    setLoading(false);
+  }
+};
   useEffect(() => {
     fetchDetails();
   }, [id]);
@@ -59,7 +73,8 @@ export default function TournamentView({ id }: { id: number }) {
   const handleSimulate = async () => {
     setSimulating(true);
     try {
-      const res = await fetch(`/api/tournaments/${id}/simulate`, { method: 'POST' });
+      const API = import.meta.env.VITE_API_URL;
+      const res = await fetch(`${API}/api/tournaments/${id}/simulate`, { method: 'POST' });
       if (res.ok) {
         await fetchDetails();
       }

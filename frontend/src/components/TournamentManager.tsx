@@ -23,50 +23,125 @@ export default function TournamentManager() {
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<number[]>([]);
 const navigate = useNavigate();
   const fetchData = async () => {
-    try {
-      const [tRes, pRes] = await Promise.all([
-        fetch('/api/tournaments'),
-        fetch('/api/players')
+
+  try {
+
+    const API =
+      import.meta.env.VITE_API_URL;
+
+    const [tRes, pRes] =
+      await Promise.all([
+
+        fetch(
+          `${API}/api/tournaments`
+        ),
+
+        fetch(
+          `${API}/api/players`
+        )
       ]);
-      const tData = await tRes.json();
-      const pData = await pRes.json();
-      setTournaments(Array.isArray(tData) ? tData : []);
-      setAvailablePlayers(Array.isArray(pData) ? pData : []);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+
+    const tData =
+      await tRes.json();
+
+    const pData =
+      await pRes.json();
+
+    setTournaments(
+      Array.isArray(tData)
+        ? tData
+        : []
+    );
+
+    setAvailablePlayers(
+      Array.isArray(pData)
+        ? pData
+        : []
+    );
+
+  } catch (error) {
+
+    console.error(
+      'Error fetching data:',
+      error
+    );
+
+  } finally {
+
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
     fetchData();
   }, []);
 
-  const handleCreateTournament = async (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log('Creating tournament with name:', name, 'and player IDs:', selectedPlayerIds);
-    if (!name.trim() || selectedPlayerIds.length < 10) {
-      alert("Please enter a name and select exactly 10 players.");
-      return;
+  const handleCreateTournament = async (
+  e: React.FormEvent
+) => {
+
+  e.preventDefault();
+
+  console.log(
+    'Creating tournament with name:',
+    name,
+    'and player IDs:',
+    selectedPlayerIds
+  );
+
+  if (
+    !name.trim() ||
+    selectedPlayerIds.length < 10
+  ) {
+
+    alert(
+      "Please enter a name and select exactly 10 players."
+    );
+
+    return;
+  }
+
+  try {
+
+    const API =
+      import.meta.env.VITE_API_URL;
+
+    const res = await fetch(
+      `${API}/api/tournaments`,
+      {
+        method: 'POST',
+
+        headers: {
+          'Content-Type':
+            'application/json'
+        },
+
+        body: JSON.stringify({
+          name,
+          playerIds:
+            selectedPlayerIds.slice(0, 10)
+        })
+      }
+    );
+
+    if (res.ok) {
+
+      setShowAddForm(false);
+
+      setName('');
+      setSelectedPlayerIds([]);
+
+      fetchData();
     }
 
-    try {
-      const res = await fetch('/api/tournaments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, playerIds: selectedPlayerIds.slice(0, 10) })
-      });
-      if (res.ok) {
-        setShowAddForm(false);
-        setName('');
-        setSelectedPlayerIds([]);
-        fetchData();
-      }
-    } catch (error) {
-      console.error('Error creating tournament:', error);
-    }
-  };
+  } catch (error) {
+
+    console.error(
+      'Error creating tournament:',
+      error
+    );
+  }
+};
 
   const togglePlayer = (id: number) => {
     setSelectedPlayerIds(prev => 

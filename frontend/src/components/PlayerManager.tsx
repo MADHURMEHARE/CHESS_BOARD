@@ -39,180 +39,207 @@ export default function PlayerManager() {
   const [editRating, setEditRating] =
     useState('1200');
 
-  const fetchPlayers = async () => {
+ const fetchPlayers = async () => {
 
-    try {
+  try {
 
-      const res = await fetch('/api/players');
+    const API =
+      import.meta.env.VITE_API_URL;
 
-      const data = await res.json();
+    const res = await fetch(
+      `${API}/api/players`
+    );
 
-      setPlayers(Array.isArray(data) ? data : []);
+    const data = await res.json();
 
-    } catch (error) {
+    setPlayers(
+      Array.isArray(data)
+        ? data
+        : []
+    );
 
-      console.error(
-        'Error fetching players:',
-        error
-      );
+  } catch (error) {
 
-    } finally {
+    console.error(
+      'Error fetching players:',
+      error
+    );
 
-      setLoading(false);
-    }
-  };
+  } finally {
 
-  useEffect(() => {
-    fetchPlayers();
-  }, []);
+    setLoading(false);
+  }
+};
+
+useEffect(() => {
+  fetchPlayers();
+}, []);
 
   // CREATE PLAYER
   const handleAddPlayer = async (
-    e: React.FormEvent
-  ) => {
+  e: React.FormEvent
+) => {
 
-    e.preventDefault();
+  e.preventDefault();
 
-    if (!newName.trim()) return;
+  if (!newName.trim()) return;
 
-    try {
+  try {
 
-      const res = await fetch('/api/players', {
+    const API =
+      import.meta.env.VITE_API_URL;
+
+    const res = await fetch(
+      `${API}/api/players`,
+      {
         method: 'POST',
 
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type':
+            'application/json',
         },
 
         body: JSON.stringify({
           name: newName,
           rating: parseInt(newRating),
         }),
-      });
-
-      if (res.ok) {
-
-        Swal.fire({
-          title: 'Success!',
-          text: 'Player added successfully',
-          icon: 'success',
-        });
-
-        setNewName('');
-        setNewRating('1200');
-
-        setShowAddForm(false);
-
-        fetchPlayers();
       }
+    );
 
-    } catch (error) {
-
-      console.error(
-        'Error adding player:',
-        error
-      );
+    if (res.ok) {
 
       Swal.fire({
-        title: 'Error',
-        text: 'Failed to add player',
-        icon: 'error',
+        title: 'Success!',
+        text:
+          'Player added successfully',
+        icon: 'success',
       });
+
+      setNewName('');
+      setNewRating('1200');
+
+      setShowAddForm(false);
+
+      fetchPlayers();
     }
-  };
+
+  } catch (error) {
+
+    console.error(
+      'Error adding player:',
+      error
+    );
+
+    Swal.fire({
+      title: 'Error',
+      text: 'Failed to add player',
+      icon: 'error',
+    });
+  }
+};
 
   // DELETE PLAYER
-  const handleDelete = async (
-    id: number
-  ) => {
+ const handleDelete = async (
+  id: number
+) => {
 
-    const result = await Swal.fire({
-      title: 'Delete Player?',
-      text: 'This action cannot be undone.',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonText: 'Yes, Delete',
-    });
+  const result = await Swal.fire({
+    title: 'Delete Player?',
+    text:
+      'This action cannot be undone.',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText:
+      'Yes, Delete',
+  });
 
-    if (!result.isConfirmed) return;
+  if (!result.isConfirmed) return;
 
-    try {
+  try {
 
-      const res = await fetch(
-        `/api/players/${id}`,
-        {
-          method: 'DELETE',
-        }
-      );
+    const API =
+      import.meta.env.VITE_API_URL;
 
-      if (res.ok) {
-
-        Swal.fire({
-          title: 'Deleted!',
-          text: 'Player removed successfully.',
-          icon: 'success',
-        });
-
-        fetchPlayers();
+    const res = await fetch(
+      `${API}/api/players/${id}`,
+      {
+        method: 'DELETE',
       }
+    );
 
-    } catch (error) {
+    if (res.ok) {
 
       Swal.fire({
-        title: 'Error',
-        text: 'Failed to delete player',
-        icon: 'error',
+        title: 'Deleted!',
+        text:
+          'Player removed successfully.',
+        icon: 'success',
       });
+
+      fetchPlayers();
     }
-  };
+
+  } catch (error) {
+
+    Swal.fire({
+      title: 'Error',
+      text:
+        'Failed to delete player',
+      icon: 'error',
+    });
+  }
+};
 
   // UPDATE PLAYER
   const handleUpdate = async (
-    id: number
-  ) => {
+  id: number
+) => {
 
-    try {
+  try {
 
-      const res = await fetch(
-        `/api/players/${id}`,
-        {
-          method: 'PUT',
+    const API =
+      import.meta.env.VITE_API_URL;
 
-          headers: {
-            'Content-Type':
-              'application/json',
-          },
+    const res = await fetch(
+      `${API}/api/players/${id}`,
+      {
+        method: 'PUT',
 
-          body: JSON.stringify({
-            name: editName,
-            rating: parseInt(editRating),
-          }),
-        }
-      );
+        headers: {
+          'Content-Type':
+            'application/json',
+        },
 
-      if (res.ok) {
-
-        Swal.fire({
-          title: 'Updated!',
-          text:
-            'Player updated successfully.',
-          icon: 'success',
-        });
-
-        setEditingId(null);
-
-        fetchPlayers();
+        body: JSON.stringify({
+          name: editName,
+          rating: parseInt(editRating),
+        }),
       }
+    );
 
-    } catch (error) {
+    if (res.ok) {
 
       Swal.fire({
-        title: 'Error',
-        text: 'Failed to update player',
-        icon: 'error',
+        title: 'Updated!',
+        text:
+          'Player updated successfully.',
+        icon: 'success',
       });
+
+      setEditingId(null);
+
+      fetchPlayers();
     }
-  };
+
+  } catch (error) {
+
+    Swal.fire({
+      title: 'Error',
+      text: 'Failed to update player',
+      icon: 'error',
+    });
+  }
+};
 
   return (
     <div className="space-y-8 lg:space-y-12">
