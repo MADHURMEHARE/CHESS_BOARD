@@ -8,6 +8,9 @@ import pg from "pg";
 const { Pool } = pg;
 
 export let hasDb = true;
+export const dbState = {
+  hasDb: true,
+};
 
 console.log(
   "DATABASE_URL:",

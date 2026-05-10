@@ -1,5 +1,5 @@
 
-import { hasDb,pool} from "../config/db.js";
+import { dbState, hasDb,pool} from "../config/db.js";
 
 // ---------------------------------------------------------------------------
 // In-Memory Fallback Store
@@ -114,8 +114,12 @@ export async function initDb(): Promise<void> {
 
     client.release();
     console.log("Database initialised");
-  } catch (err) {
-    console.error("Database connection failed. Falling back to IN-MEMORY.", err);
-    (hasDb as any) = false;
-  }
+  }  catch (err) {
+  console.error(
+    "Database connection failed. Falling back to IN-MEMORY.",
+    err
+  );
+
+  dbState.hasDb = false;
+}
 }
