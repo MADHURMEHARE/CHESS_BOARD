@@ -10,29 +10,46 @@ on:
       - main
 
 jobs:
-  build:
+  frontend:
     runs-on: ubuntu-latest
 
+    defaults:
+      run:
+        working-directory: frontend
+
     steps:
-      - name: Checkout Repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
 
       - name: Install Frontend Dependencies
-        run: |
-          cd frontend
-          npm install
+        run: npm install
 
       - name: Build Frontend
-        run: |
-          cd frontend
-          npm run build
+        run: npm run build
+
+  backend:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
 
       - name: Install Backend Dependencies
-        run: |
-          cd backend
-          npm install
+        run: npm install
+
+      - name: Build Backend
+        run: npm run build
