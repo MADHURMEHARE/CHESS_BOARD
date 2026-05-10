@@ -1,6 +1,0 @@
-{
-  "name": "Checkmate Central",
-  "description": "Professional chess tournament management system with automated matchmaking, rankings, and player performance tracking.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["Tournament Management", "Player Profiles", "Match Simulation"]
-}
