@@ -1,5 +1,5 @@
 
-import { hasDb,pool} from "../config/db";
+import { hasDb,pool} from "../config/db.js";
 
 // ---------------------------------------------------------------------------
 // In-Memory Fallback Store

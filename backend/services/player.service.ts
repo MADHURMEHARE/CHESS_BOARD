@@ -1,6 +1,6 @@
 import * as playerRepo from "../repositories/player.repository.js";
 
-import { Player } from "../schema/schema";
+import { Player } from "../schema/schema.js";
 
 // GET ALL PLAYERS
 export async function listPlayers(): Promise<Player[]> {
