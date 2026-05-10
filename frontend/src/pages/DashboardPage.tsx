@@ -15,41 +15,73 @@ export default function DashboardPage() {
 
   const [dbStatus, setDbStatus] = useState<"connected" | "local">("local");
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const [pRes, tRes] = await Promise.all([
-          fetch("/api/players"),
-          fetch("/api/tournaments"),
-        ]);
+  const fetchStats = async () => {
 
-        const players = await pRes.json();
-        const tournaments = await tRes.json();
+  try {
 
-        const playersArray = Array.isArray(players) ? players : [];
+    const API =
+      import.meta.env.VITE_API_URL;
 
-        const tournamentsArray = Array.isArray(tournaments) ? tournaments : [];
+    const [pRes, tRes] =
+      await Promise.all([
 
-        setStats({
-          players: playersArray.length,
+        fetch(
+          `${API}/api/players`
+        ),
 
-          tournaments: tournamentsArray.length,
+        fetch(
+          `${API}/api/tournaments`
+        ),
+      ]);
 
-          active: tournamentsArray.filter((t: any) => t.status === "active")
-            .length,
-        });
+    const players =
+      await pRes.json();
 
-        setDbStatus(
-          pRes.headers.get("x-db-type") === "neon" ? "connected" : "local",
-        );
-      } catch (err) {
-        console.error("Stats fetch error:", err);
-      }
-    };
+    const tournaments =
+      await tRes.json();
 
-    fetchStats();
-  }, []);
+    const playersArray =
+      Array.isArray(players)
+        ? players
+        : [];
 
+    const tournamentsArray =
+      Array.isArray(tournaments)
+        ? tournaments
+        : [];
+
+    setStats({
+      players:
+        playersArray.length,
+
+      tournaments:
+        tournamentsArray.length,
+
+      active:
+        tournamentsArray.filter(
+          (t: any) =>
+            t.status === "active"
+        ).length,
+    });
+
+    setDbStatus(
+      pRes.headers.get(
+        "x-db-type"
+      ) === "neon"
+        ? "connected"
+        : "local",
+    );
+
+  } catch (err) {
+
+    console.error(
+      "Stats fetch error:",
+      err
+    );
+  }
+};
+
+fetchStats();
   return (
     <div className="space-y-8">
       {/* Header */}
