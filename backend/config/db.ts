@@ -1,19 +1,30 @@
+import dotenv from "dotenv";
+
+dotenv.config({
+  path: ".env",
+});
 import pg from "pg";
 
 const { Pool } = pg;
 
-export const hasDb = true;
+export let hasDb = true;
+
+console.log(
+  "DATABASE_URL:",
+  process.env.DATABASE_URL
+);
 
 export const pool = new Pool({
   connectionString:
-    "postgresql://neondb_owner:npg_79miDuXPShLB@ep-weathered-boat-aql0e11t.c-8.us-east-1.aws.neon.tech/neondb?sslmode=require",
+    process.env.DATABASE_URL,
 
   ssl: {
     rejectUnauthorized: false,
   },
 });
 
-pool.connect()
+pool
+  .connect()
   .then(() => {
     console.log(
       "✅ PostgreSQL Connected"
@@ -24,4 +35,6 @@ pool.connect()
       "❌ DB Connection Error:",
       err
     );
+
+    hasDb = false;
   });

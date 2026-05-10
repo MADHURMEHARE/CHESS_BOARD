@@ -1,10 +1,15 @@
+import dotenv from "dotenv";
+dotenv.config();
+
 import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
 import cors from "cors";
-import{ hasDb } from "./config/db.js";
-import { initDb} from "./schema/schema.js";
+
+import { hasDb } from "./config/db.js";
+import { initDb } from "./schema/schema.js";
+
 import playerRoutes from "./routes/player.routes.js";
 import tournamentRoutes from "./routes/tournament.routes.js";
 
