@@ -1,9 +1,9 @@
 import dotenv from "dotenv";
-
+import fs from "fs";
 dotenv.config({
   path: ".env",
 });
-
+console.log(fs.existsSync(".env"));
 import express from "express";
 import cors from "cors";
 
@@ -34,23 +34,16 @@ async function startServer() {
   });
 
   // API Logger
-  app.use((req, _res, next) => {
 
-    if (req.url.startsWith("/api")) {
-
-      console.log(
-        `API Request: ${req.method} ${req.url}`
-      );
-    }
-
-    next();
-  });
 
   // Routes
   app.use(
     "/api/players",
     playerRoutes
   );
+ 
+
+
 
   app.use(
     "/api/tournaments",

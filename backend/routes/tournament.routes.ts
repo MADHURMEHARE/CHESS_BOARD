@@ -1,7 +1,14 @@
 import { Router } from "express";
 import * as tournamentController from "../controllers/tournament.controller.js";
+import { getTournamentCountController } from "../controllers/tournament.controller.js";
 
 const router = Router();
+    
+
+router.get(
+  "/count",
+  getTournamentCountController
+);
 
 router.get("/",             tournamentController.listTournaments);
 router.get("/:id",          tournamentController.getTournament);

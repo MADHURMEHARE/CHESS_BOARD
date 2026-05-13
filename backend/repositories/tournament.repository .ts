@@ -9,6 +9,19 @@ type Db = PoolClient | typeof pool;
 // Reads — no transaction needed
 // ---------------------------------------------------------------------------
 
+
+
+export async function getTournamentCountRepo(): Promise<number> {
+  if (!hasDb) {
+    return memoryStore.tournaments.length;
+  }
+
+  const result = await pool.query(
+    "SELECT COUNT(*) FROM tournaments"
+  );
+
+  return Number(result.rows[0].count);
+}
 export async function getAllTournaments(): Promise<Tournament[]> {
   if (!hasDb) {
     return [...memoryStore.tournaments].sort(
@@ -29,7 +42,18 @@ export async function getTournamentById(id: number) {
       .map((tp) => {
         const p = memoryStore.players.find((p) => p.id === tp.player_id);
         if (!p) return null;                      // guard: skip orphaned records
-        return { ...p, ...tp };
+        return {
+          id: p.id,
+          name: p.name,
+          rating: p.rating,
+          wins: p.wins,
+          losses: p.losses,
+          created_at: p.created_at,
+          points: tp.points,
+          tournament_wins: tp.wins ?? 0,
+          tournament_losses: tp.losses ?? 0,
+          is_disqualified: tp.is_disqualified,
+        };
       })
       .filter(Boolean);                           // remove any nulls
 
@@ -57,7 +81,7 @@ export async function getTournamentById(id: number) {
   if (tournamentResult.rows.length === 0) return null;
 
   const playersResult = await pool.query(
-    `SELECT p.*, tp.points, tp.is_disqualified
+    `SELECT p.*, tp.points, tp.wins AS tournament_wins, tp.losses AS tournament_losses, tp.is_disqualified
      FROM players p
      JOIN tournament_players tp ON p.id = tp.player_id
      WHERE tp.tournament_id = $1`,
@@ -119,6 +143,8 @@ export async function createTournament(
         tournament_id: tournament.id,
         player_id: playerId,
         points: 0,
+        wins: 0,
+        losses: 0,
         is_disqualified: false,
       });
     }
@@ -190,13 +216,74 @@ export async function clearTournamentData(
     );
     memoryStore.tournament_players
       .filter((tp) => tp.tournament_id === tournamentId)
-      .forEach((tp) => { tp.points = 0; tp.is_disqualified = false; });
+      .forEach((tp) => {
+        tp.points = 0;
+        tp.wins = 0;
+        tp.losses = 0;
+        tp.is_disqualified = false;
+      });
     return;
   }
   await db.query("DELETE FROM matches WHERE tournament_id = $1", [tournamentId]);
   await db.query(
-    "UPDATE tournament_players SET points = 0, is_disqualified = FALSE WHERE tournament_id = $1",
+    `UPDATE tournament_players
+     SET points = 0, wins = 0, losses = 0, is_disqualified = FALSE
+     WHERE tournament_id = $1`,
     [tournamentId]
+  );
+}
+
+export async function recordTournamentMatchOutcome(
+  tournamentId: number,
+  winnerId: number,
+  loserId: number,
+  db: Db = pool
+): Promise<void> {
+  if (!hasDb) {
+    const w = memoryStore.tournament_players.find(
+      (tp) => tp.tournament_id === tournamentId && tp.player_id === winnerId
+    );
+    const l = memoryStore.tournament_players.find(
+      (tp) => tp.tournament_id === tournamentId && tp.player_id === loserId
+    );
+    if (w) {
+      w.points += 1;
+      w.wins += 1;
+    }
+    if (l) l.losses += 1;
+    return;
+  }
+  await db.query(
+    `UPDATE tournament_players SET points = points + 1, wins = wins + 1
+     WHERE tournament_id = $1 AND player_id = $2`,
+    [tournamentId, winnerId]
+  );
+  await db.query(
+    `UPDATE tournament_players SET losses = losses + 1
+     WHERE tournament_id = $1 AND player_id = $2`,
+    [tournamentId, loserId]
+  );
+}
+
+export async function markPlayersDisqualified(
+  tournamentId: number,
+  playerIds: number[],
+  db: Db = pool
+): Promise<void> {
+  if (playerIds.length === 0) return;
+  if (!hasDb) {
+    for (const pid of playerIds) {
+      const tp = memoryStore.tournament_players.find(
+        (x) => x.tournament_id === tournamentId && x.player_id === pid
+      );
+      if (tp) tp.is_disqualified = true;
+    }
+    return;
+  }
+  await db.query(
+    `UPDATE tournament_players SET is_disqualified = TRUE
+     WHERE tournament_id = $1 AND player_id = ANY($2::int[])`,
+    [tournamentId, playerIds]
   );
 }
 

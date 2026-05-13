@@ -11,7 +11,16 @@ interface Player {
   name: string;
   rating: number;
   points: number;
+  tournament_wins?: number;
+  tournament_losses?: number;
   is_disqualified: boolean;
+}
+
+interface PodiumEntry {
+  place: number;
+  player_id: number;
+  name: string;
+  rating: number;
 }
 
 interface Match {
@@ -32,6 +41,7 @@ interface TournamentDetail {
   status: string;
   players: Player[];
   matches: Match[];
+  rankings: PodiumEntry[] | null;
 }
 
 export default function TournamentView({ id }: { id: number }) {
@@ -97,11 +107,25 @@ const fetchDetails = async () => {
     return acc;
   }, {} as Record<number, Match[]>);
 
-  // Derive rankings
   const rankedPlayers = [...players].sort((a, b) => {
     if (a.points !== b.points) return b.points - a.points;
+    const aw = a.tournament_wins ?? 0;
+    const bw = b.tournament_wins ?? 0;
+    if (aw !== bw) return bw - aw;
     return b.rating - a.rating;
   });
+
+  const podium =
+    tournament.rankings && tournament.rankings.length >= 3
+      ? tournament.rankings
+      : tournament.status === 'completed'
+        ? rankedPlayers.slice(0, 3).map((p, i) => ({
+            place: i + 1,
+            player_id: p.id,
+            name: p.name,
+            rating: p.rating,
+          }))
+        : null;
 
   return (
     <div className="space-y-16">
@@ -146,11 +170,14 @@ const fetchDetails = async () => {
               <Award className="w-4 h-4 text-[#B45309]" />
               The Podium
             </h2>
-            {tournament.status === 'completed' ? (
+            {tournament.status === 'completed' && podium ? (
               <div className="space-y-4">
-                <WinnerCard rank={1} player={rankedPlayers[0]} label="Gold Laurels" color="bg-[#B45309]" />
-                <WinnerCard rank={2} player={rankedPlayers[1]} label="Silver Distinction" color="bg-[#1A1A1A]" />
-                <WinnerCard rank={3} player={rankedPlayers[2]} label="Bronze Merit" color="bg-zinc-400" />
+                <WinnerCard rank={1} name={podium[0].name} rating={podium[0].rating} label="Gold Laurels" color="bg-[#B45309]" />
+                <WinnerCard rank={2} name={podium[1].name} rating={podium[1].rating} label="Silver Distinction" color="bg-[#1A1A1A]" />
+                <WinnerCard rank={3} name={podium[2].name} rating={podium[2].rating} label="Bronze Merit" color="bg-zinc-400" />
+                <p className="text-[9px] font-mono text-[#1A1A1A]/40 uppercase tracking-widest">
+                  Third place is the semi-finalist with the higher rating (no separate bronze match).
+                </p>
               </div>
             ) : (
               <div className="p-12 border-4 border-dashed border-[#1A1A1A]/10 text-center text-[#1A1A1A]/30 text-xs font-mono font-bold italic">
@@ -167,14 +194,26 @@ const fetchDetails = async () => {
             <div className="border-2 border-[#1A1A1A] divide-y-2 divide-[#1A1A1A] bg-white">
               {rankedPlayers.map((player, idx) => (
                 <div key={player.id} className="p-4 flex justify-between items-center group hover:bg-[#F8F7F2] transition-colors">
-                  <div className="flex items-center gap-4">
-                    <span className="text-[10px] font-mono font-black text-[#1A1A1A]/30 group-hover:text-[#B45309] transition-colors">{idx + 1 < 10 ? `0${idx + 1}` : idx + 1}</span>
-                    <span className={`text-sm font-black uppercase italic ${player.is_disqualified ? 'text-[#1A1A1A]/20 line-through' : 'text-[#1A1A1A]'}`}>
-                      {player.name}
-                    </span>
+                  <div className="flex items-center gap-4 min-w-0 flex-wrap">
+                    <span className="text-[10px] font-mono font-black text-[#1A1A1A]/30 group-hover:text-[#B45309] transition-colors shrink-0">{idx + 1 < 10 ? `0${idx + 1}` : idx + 1}</span>
+                    <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                      <span className={`text-sm font-black uppercase italic truncate ${player.is_disqualified ? 'text-[#1A1A1A]/20 line-through' : 'text-[#1A1A1A]'}`}>
+                        {player.name}
+                      </span>
+                      {player.is_disqualified && (
+                        <span className="text-[8px] font-mono uppercase tracking-widest text-red-600 border border-red-600 px-1.5 py-0.5 shrink-0">
+                          Out
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <div className="text-xs font-mono font-black text-[#B45309]">
-                    {player.points} PT
+                  <div className="flex flex-col items-end gap-1 text-right">
+                    <span className="text-[9px] font-mono font-bold text-[#1A1A1A]/50 uppercase">
+                      {(player.tournament_wins ?? 0)}W — {(player.tournament_losses ?? 0)}L
+                    </span>
+                    <div className="text-xs font-mono font-black text-[#B45309]">
+                      {player.points} PT
+                    </div>
                   </div>
                 </div>
               ))}
@@ -220,14 +259,15 @@ const fetchDetails = async () => {
   );
 }
 
-function WinnerCard({ rank, player, label, color }: { rank: number, player: Player, label: string, color: string }) {
+function WinnerCard({ rank, name, rating, label, color }: { rank: number; name: string; rating: number; label: string; color: string }) {
   return (
     <div className="relative border-b-8 border-r-8 border-[#1A1A1A] bg-white overflow-hidden group hover:-translate-y-1 transition-all">
       <div className={`absolute left-0 top-0 bottom-0 w-2 ${color}`}></div>
       <div className="p-6 flex items-center justify-between">
         <div className="relative z-10">
           <div className="text-[9px] font-black uppercase tracking-[0.2em] text-[#1A1A1A]/40 mb-2">{label}</div>
-          <div className="text-2xl font-serif font-black uppercase italic tracking-tighter leading-none">{player.name}</div>
+          <div className="text-2xl font-serif font-black uppercase italic tracking-tighter leading-none">{name}</div>
+          <div className="text-[10px] font-mono text-[#1A1A1A]/40 mt-1">Rating {rating}</div>
         </div>
         <div className="text-5xl font-serif font-black italic text-[#1A1A1A]/[0.05] group-hover:text-[#1A1A1A]/10 transition-colors absolute -right-2 top-0 pointer-events-none">
           {rank}

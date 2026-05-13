@@ -1,5 +1,8 @@
+import { PoolClient } from "pg";
 import { memoryStore, Player } from "../schema/schema.js";
 import { hasDb, pool } from "../config/db.js";
+
+type Db = PoolClient | typeof pool;
 
 // GET ALL PLAYERS
 export async function getAllPlayers(): Promise<Player[]> {
@@ -140,4 +143,27 @@ export async function deletePlayer(
   );
 
   return result.rowCount! > 0;
+}
+
+/** Increment career wins for winner and losses for loser (tournament match result). */
+export async function incrementPlayerWinLoss(
+  winnerId: number,
+  loserId: number,
+  db: Db = pool
+): Promise<void> {
+  if (!hasDb) {
+    const w = memoryStore.players.find((p) => p.id === winnerId);
+    const l = memoryStore.players.find((p) => p.id === loserId);
+    if (w) w.wins += 1;
+    if (l) l.losses += 1;
+    return;
+  }
+  await db.query(
+    `UPDATE players SET wins = wins + 1 WHERE id = $1`,
+    [winnerId]
+  );
+  await db.query(
+    `UPDATE players SET losses = losses + 1 WHERE id = $1`,
+    [loserId]
+  );
 }

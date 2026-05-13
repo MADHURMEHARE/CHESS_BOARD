@@ -21,19 +21,19 @@ export default function Sidebar() {
   const navItems = [
     {
       path: "/",
-      label: "Overview",
+      label: "dashboard",
       icon: <LayoutDashboard className="w-5 h-5" />,
     },
 
     {
       path: "/players",
-      label: "Registrar",
+      label: "Players",
       icon: <Users className="w-5 h-5" />,
     },
 
     {
       path: "/tournaments",
-      label: "The Circuit",
+      label: "Tournaments",
       icon: <Trophy className="w-5 h-5" />,
     },
   ];

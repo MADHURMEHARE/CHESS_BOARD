@@ -1,181 +1,130 @@
-# ♟️ Chess Tournament Platform
+# Chess Tournament Platform
 
-A modern full-stack chess tournament management platform built with React, Vite, Node.js, and PostgreSQL.  
-The platform allows users to create tournaments, manage players, track matches, and view tournament standings in real time.
-
----
-
-# 🚀 Features
-
-- 🎯 Create and manage chess tournaments
-- 👥 Player registration system
-- 🏆 Tournament brackets and standings
-- ♟️ Match scheduling and tracking
-- 📊 Real-time tournament updates
-- 🔐 Authentication system
-- 🌐 REST API integration
-- ⚡ Fast frontend using Vite + React
-- 🗄️ PostgreSQL database support
+Full-stack chess tournament management: player profiles, 10-player knockout circuits with a repechage round, simulated matches with random winners, standings, and podium results. Built with React (Vite), Node.js (Express), and PostgreSQL (works with Neon using `DATABASE_URL`). If no database URL is configured, the API falls back to an in-memory store for local demos.
 
 ---
 
-# 🛠️ Tech Stack
+## Features
 
-## Frontend
-- React
-- TypeScript
-- Vite
-- Tailwind CSS
-- React Router
-
-## Backend
-- Node.js
-- Express.js
-- PostgreSQL
-- Prisma / Sequelize (if using)
+- **Players:** Create, edit, delete, and list player profiles (name, rating, career W/L stored in the database).
+- **Tournaments:** Create a tournament with **exactly 10 players**; add participants from the roster.
+- **Match format:** Four rounds — Round 1 (5 pairings), Round 2 (4 pairings after three first-round losers return), Round 3 (2 semi-finals), Round 4 (1 final). Winners are chosen at random for each pairing during simulation.
+- **Tracking:** Per-tournament wins, losses, and points; career `wins` / `losses` on each player row are updated when matches are simulated.
+- **Rankings:** API returns `rankings` for completed events: 1st and 2nd from the final; 3rd is the semi-finalist with the higher rating (no separate bronze match).
+- **Disqualification:** Players eliminated in round 1 (not among the three returners) and all round 2 losers are flagged `is_disqualified` for clear UI separation from finalists and semi-finalists.
 
 ---
 
-# 📁 Project Structure
+## Tech Stack
 
-```bash
+| Layer    | Technology                          |
+| -------- | ----------------------------------- |
+| Frontend | React, TypeScript, Vite, Tailwind   |
+| Backend  | Node.js, Express, `pg` (no ORM)     |
+| Database | PostgreSQL (e.g. Neon) or in-memory |
+
+---
+
+## Architecture (tournament flow)
+
+1. **POST `/api/tournaments`** — Body: `{ "name": string, "playerIds": number[] }` (length 10). Inserts `tournaments` and `tournament_players` rows.
+2. **POST `/api/tournaments/:id/simulate`** — Builds rounds in memory, persists `matches`, updates `tournament_players` (points, wins, losses, disqualified flags), updates global `players` wins/losses, sets tournament `status` to `completed`. All DB writes run in a single transaction when using PostgreSQL.
+3. **GET `/api/tournaments/:id`** — Returns the tournament, joined players (including `tournament_wins`, `tournament_losses`), ordered `matches`, and `rankings` when status is `completed`.
+
+```text
+Round 1: 10 players -> 5 matches -> 5 winners + 5 losers
+         3 losers re-enter -> Round 2 pool = 8 players -> 4 matches
+Round 3: 4 winners -> 2 semi-finals
+Round 4: 2 winners -> 1 final
+```
+
+---
+
+## Project structure
+
+```text
 CHESS_BOARD/
-│
-├── frontend/
-│   ├── src/
-│   ├── public/
-│   └── vite.config.ts
-│
-├── backend/
-│   ├── routes/
-│   ├── controllers/
-│   ├── models/
-│   ├── middleware/
-│   └── server.js
-│
-├── dist/
-├── package.json
+├── frontend/          # Vite + React UI
+├── backend/           # Express API, repositories, services
+│   └── schema/        # Table DDL in initDb + shared TS types
 └── README.md
 ```
 
 ---
 
-# ⚙️ Installation
+## Setup
 
-## 1️⃣ Clone Repository
+### 1. Clone and install
 
 ```bash
 git clone <your-repository-url>
 cd CHESS_BOARD
+cd backend && npm install
+cd ../frontend && npm install
 ```
 
----
+### 2. Environment
 
-## 2️⃣ Install Dependencies
-
-### Frontend
-
-```bash
-npm install
-```
-
-### Backend
-
-```bash
-cd backend
-npm install
-```
-
----
-
-# ▶️ Run Project
-
-## Start Frontend
-
-```bash
-npm run dev
-```
-
-Frontend runs on:
-
-```bash
-http://localhost:3000
-```
-
----
-
-## Start Backend
-
-```bash
-cd backend
-npm run dev
-```
-
-Backend runs on:
-
-```bash
-http://localhost:5000
-```
-
----
-
-# 🗄️ Database Setup
-
-Create a PostgreSQL database.
-
-Add environment variables:
+**Backend** (`backend/.env`):
 
 ```env
-DATABASE_URL=your_postgresql_connection_url
+DATABASE_URL=postgresql://user:pass@host/db?sslmode=require
 PORT=5000
-JWT_SECRET=your_secret_key
 ```
 
----
+**Frontend** (e.g. `frontend/.env`):
 
-# 🧪 Build Project
+```env
+VITE_API_URL=http://localhost:5000
+```
+
+Omit `DATABASE_URL` to run the API against the in-memory fallback (useful for quick demos).
+
+### 3. Run
+
+Terminal 1 — API:
 
 ```bash
-npm run build
+cd backend
+npm run dev
+```
+
+Terminal 2 — UI (default Vite port is often 5173; check terminal output):
+
+```bash
+cd frontend
+npm run dev
 ```
 
 ---
 
-# 📡 API Routes
-
-## Tournament Routes
+## API (tournaments)
 
 | Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | /api/tournaments | Get all tournaments |
-| POST | /api/tournaments | Create tournament |
-| GET | /api/tournaments/:id | Get tournament by ID |
+| ------ | -------- | ----------- |
+| GET | `/api/tournaments` | List tournaments |
+| GET | `/api/tournaments/:id` | Detail + players + matches + `rankings` when completed |
+| POST | `/api/tournaments` | Create (requires exactly 10 `playerIds`) |
+| POST | `/api/tournaments/:id/simulate` | Run random-winner simulation |
+| DELETE | `/api/tournaments/:id` | Delete (not allowed while `active`) |
 
 ---
 
-# 📸 Screenshots
+## Build
 
-Add project screenshots here.
-
----
-
-# 🔮 Future Improvements
-
-- Live chess board integration
-- Elo rating system
-- Match analytics
-- Admin dashboard
-- Real-time multiplayer support
-- WebSocket integration
+```bash
+cd backend && npm run build
+cd ../frontend && npm run build
+```
 
 ---
 
-# 👨‍💻 Author
+## Author
 
 Developed by Madhur Mehare
 
 ---
 
-# 📄 License
+## License
 
-This project is licensed under the MIT License.
+MIT License.

@@ -6,49 +6,101 @@ interface Stats {
   active: number;
 }
 
-type DbStatus = 'connected' | 'local';
+type DbStatus =
+  | 'connected'
+  | 'local';
 
-export function useStats(dep: string) {
-  const [stats, setStats] = useState<Stats>({ players: 0, tournaments: 0, active: 0 });
-  const [dbStatus, setDbStatus] = useState<DbStatus>('local');
+export function useStats(
+  dep: string
+) {
+
+  const [stats, setStats] =
+    useState<Stats>({
+      players: 0,
+      tournaments: 0,
+      active: 0
+    });
+
+  const [dbStatus, setDbStatus] =
+    useState<DbStatus>('local');
 
   useEffect(() => {
-    const fetchStats = async () => {
+
+    const fetchStats =
+      async () => {
+
       try {
-        const [pRes, tRes] = await Promise.all([
-          fetch('/api/players'),
-          fetch('/api/tournaments'),
-        ]);
 
-        const ct1 = pRes.headers.get('content-type');
-        const ct2 = tRes.headers.get('content-type');
+        const API =
+          import.meta.env
+            .VITE_API_URL;
 
-        if (!ct1?.includes('application/json') || !ct2?.includes('application/json')) {
-          const text1 = await pRes.text();
-          console.error('Non-JSON response from /api/players:', text1.slice(0, 100));
-          throw new Error('SERVER_NOT_RETURNING_JSON');
-        }
+        const [pRes, tRes] =
+          await Promise.all([
 
-        const players = await pRes.json();
-        const tournaments = await tRes.json();
+            fetch(
+              `${API}/api/players`
+            ),
 
-        const playersArray = Array.isArray(players) ? players : [];
-        const tournamentsArray = Array.isArray(tournaments) ? tournaments : [];
+            fetch(
+              `${API}/api/tournaments`
+            ),
+          ]);
+
+        const players =
+          await pRes.json();
+
+        const tournaments =
+          await tRes.json();
+
+        const playersArray =
+          Array.isArray(players)
+            ? players
+            : [];
+
+        const tournamentsArray =
+          Array.isArray(tournaments)
+            ? tournaments
+            : [];
 
         setStats({
-          players: playersArray.length,
-          tournaments: tournamentsArray.length,
-          active: tournamentsArray.filter((t: any) => t.status === 'active').length,
+          players:
+            playersArray.length,
+
+          tournaments:
+            tournamentsArray.length,
+
+          active:
+            tournamentsArray.filter(
+              (t: any) =>
+                t.status === 'active' ||
+                t.status === 'pending'
+            ).length,
         });
 
-        setDbStatus(pRes.headers.get('x-db-type') === 'neon' ? 'connected' : 'local');
+        setDbStatus(
+          pRes.headers.get(
+            'x-db-type'
+          ) === 'neon'
+            ? 'connected'
+            : 'local'
+        );
+
       } catch (err) {
-        console.error('Stats fetch error:', err);
+
+        console.error(
+          'Stats fetch error:',
+          err
+        );
       }
     };
 
     fetchStats();
-  }, [dep]);
 
-  return { stats, dbStatus };
+  }, []);
+
+  return {
+    stats,
+    dbStatus
+  };
 }

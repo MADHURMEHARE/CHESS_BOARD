@@ -1,9 +1,68 @@
 // services/tournament.service.ts
 
+import type { PoolClient } from "pg";
 import { hasDb, pool } from "../config/db.js";
 
 import * as repo from "../repositories/tournament.repository .js";
+import { getTournamentCountRepo } from "../repositories/tournament.repository .js";
+import * as playerRepo from "../repositories/player.repository.js";
 
+export type PodiumEntry = {
+  place: number;
+  player_id: number;
+  name: string;
+  rating: number;
+};
+
+function computePodium(
+  matches: {
+    round: number;
+    player1_id: number;
+    player2_id: number;
+    winner_id: number | null;
+  }[],
+  players: { id: number; name: string; rating: number }[]
+): PodiumEntry[] | null {
+  const final = matches.find((m) => m.round === 4);
+  if (!final?.winner_id) return null;
+
+  const find = (pid: number) => {
+    const p = players.find((x) => x.id === pid);
+    return p
+      ? { player_id: p.id, name: p.name, rating: p.rating }
+      : null;
+  };
+
+  const secondId =
+    final.player1_id === final.winner_id
+      ? final.player2_id
+      : final.player1_id;
+
+  const semis = matches.filter((m) => m.round === 3);
+  if (semis.length < 2) return null;
+
+  const semiLosers = semis.map((m) =>
+    m.player1_id === m.winner_id ? m.player2_id : m.player1_id
+  );
+  const s0 = find(semiLosers[0]);
+  const s1 = find(semiLosers[1]);
+  if (!s0 || !s1) return null;
+
+  const third = s0.rating >= s1.rating ? s0 : s1;
+  const first = find(final.winner_id);
+  const second = find(secondId);
+  if (!first || !second) return null;
+
+  return [
+    { place: 1, ...first },
+    { place: 2, ...second },
+    { place: 3, ...third },
+  ];
+}
+
+export async function getTournamentCountService() {
+  return await getTournamentCountRepo();
+}
 // CUSTOM ERRORS
 class ValidationError extends Error {
 
@@ -32,21 +91,21 @@ export async function listTournaments() {
   return repo.getAllTournaments();
 }
 
-export async function getTournament(
-  id: number
-) {
-
-  const tournament =
-    await repo.getTournamentById(id);
+export async function getTournament(id: number) {
+  const tournament = await repo.getTournamentById(id);
 
   if (!tournament) {
-
-    throw new NotFoundError(
-      "Tournament"
-    );
+    throw new NotFoundError("Tournament");
   }
 
-  return tournament;
+  const rankings =
+    tournament.status === "completed" &&
+    Array.isArray(tournament.matches) &&
+    tournament.matches.length > 0
+      ? computePodium(tournament.matches, tournament.players)
+      : null;
+
+  return { ...tournament, rankings };
 }
 
 export async function createTournament(
@@ -65,13 +124,9 @@ export async function createTournament(
     );
   }
 
-  if (
-    !Array.isArray(playerIds) ||
-    playerIds.length < 10
-  ) {
-
+  if (!Array.isArray(playerIds) || playerIds.length !== 10) {
     throw new ValidationError(
-      "Tournament requires at least 10 players"
+      "Tournament requires exactly 10 players (round 1: five matches; three returners join round 2)"
     );
   }
 
@@ -112,13 +167,10 @@ export async function deleteTournament(
 // ---------------------------------------------------------------------------
 
 interface MatchRecord {
-
   p1: number;
-
   p2: number;
-
   winner: number;
-
+  loser: number;
   round: number;
 }
 
@@ -150,15 +202,15 @@ function buildRound(
     i < Math.floor(shuffled.length / 2);
     i++
   ) {
-
     const p1 = shuffled[i * 2];
-
     const p2 = shuffled[i * 2 + 1];
 
+    const winner = pickWinner(p1, p2);
     matches.push({
       p1,
       p2,
-      winner: pickWinner(p1, p2),
+      winner,
+      loser: winner === p1 ? p2 : p1,
       round,
     });
   }
@@ -201,11 +253,8 @@ export async function simulateTournament(
       tournamentId
     );
 
-  if (allPlayerIds.length < 10) {
-
-    throw new ValidationError(
-      "Tournament requires at least 10 players"
-    );
+  if (allPlayerIds.length !== 10) {
+    throw new ValidationError("Tournament requires exactly 10 players");
   }
 
   // ROUND 1
@@ -265,105 +314,70 @@ export async function simulateTournament(
     ...r4Matches,
   ];
 
-  // -----------------------------------------------------------------------
-  // DATABASE MODE
-  // -----------------------------------------------------------------------
+  const dqRound1 = r1Losers.filter((id) => !luckyLosers.includes(id));
+  const dqRound2 = r2Matches.map((m) => m.loser);
+  const disqualifiedIds = [...new Set([...dqRound1, ...dqRound2])];
 
-  if (hasDb) {
-
-    const client =
-      await pool.connect();
-
-    try {
-
-      await client.query("BEGIN");
-
-      await repo.setTournamentStatus(
-        tournamentId,
-        "active",
-        client
-      );
-
-      await repo.clearTournamentData(
-        tournamentId,
-        client
-      );
-
-      for (const m of allMatches) {
-
+  async function persistMatches(db?: PoolClient): Promise<void> {
+    for (const m of allMatches) {
+      if (db) {
         await repo.insertMatch(
           tournamentId,
           m.round,
           m.p1,
           m.p2,
           m.winner,
-          client
+          db
         );
-
-        await repo.addPointsToPlayer(
+        await repo.recordTournamentMatchOutcome(
           tournamentId,
           m.winner,
-          1,
-          client
+          m.loser,
+          db
         );
+        await playerRepo.incrementPlayerWinLoss(m.winner, m.loser, db);
+      } else {
+        await repo.insertMatch(
+          tournamentId,
+          m.round,
+          m.p1,
+          m.p2,
+          m.winner
+        );
+        await repo.recordTournamentMatchOutcome(
+          tournamentId,
+          m.winner,
+          m.loser
+        );
+        await playerRepo.incrementPlayerWinLoss(m.winner, m.loser);
       }
+    }
+    if (db) {
+      await repo.markPlayersDisqualified(tournamentId, disqualifiedIds, db);
+    } else {
+      await repo.markPlayersDisqualified(tournamentId, disqualifiedIds);
+    }
+  }
 
-      await repo.setTournamentStatus(
-        tournamentId,
-        "completed",
-        client
-      );
-
+  if (hasDb) {
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      await repo.setTournamentStatus(tournamentId, "active", client);
+      await repo.clearTournamentData(tournamentId, client);
+      await persistMatches(client);
+      await repo.setTournamentStatus(tournamentId, "completed", client);
       await client.query("COMMIT");
-
     } catch (err) {
-
-      await client.query(
-        "ROLLBACK"
-      );
-
+      await client.query("ROLLBACK");
       throw err;
-
     } finally {
-
       client.release();
     }
-
   } else {
-
-    // ---------------------------------------------------------------------
-    // MEMORY MODE
-    // ---------------------------------------------------------------------
-
-    repo.setTournamentStatus(
-      tournamentId,
-      "active"
-    );
-
-    repo.clearTournamentData(
-      tournamentId
-    );
-
-    for (const m of allMatches) {
-
-      repo.insertMatch(
-        tournamentId,
-        m.round,
-        m.p1,
-        m.p2,
-        m.winner
-      );
-
-      repo.addPointsToPlayer(
-        tournamentId,
-        m.winner,
-        1
-      );
-    }
-
-    repo.setTournamentStatus(
-      tournamentId,
-      "completed"
-    );
+    repo.setTournamentStatus(tournamentId, "active");
+    repo.clearTournamentData(tournamentId);
+    await persistMatches();
+    repo.setTournamentStatus(tournamentId, "completed");
   }
 }
